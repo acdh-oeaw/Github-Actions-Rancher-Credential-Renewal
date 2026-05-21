@@ -1,0 +1,38 @@
+name: workflows starter
+on:
+  push: {}
+jobs:
+  setup_workflow_env:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.get_environment_from_git_ref.outputs.environment }}
+      environment_short: ${{ steps.get_environment_from_git_ref.outputs.environment_short }}
+      registry_root: ghcr.io/${{ github.repository }}/
+      image_name: main
+      fetch-depth: "1"
+      submodules: "true"
+    steps:
+      - name: Get environment from git ref
+        id: get_environment_from_git_ref
+        run: |
+          echo "Running on branch ${{ github.ref_name }}"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production"
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "environment_short=prod" >> $GITHUB_OUTPUT
+          else
+            echo "environment=review/${{ github.ref_name }}"
+            echo "environment=review/${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "environment_short=$(echo -n ${{ github.ref_name }} | sed 's/feat\(ure\)\{0,1\}[_/]//' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c -63 )" >> $GITHUB_OUTPUT
+          fi
+  _1:
+    needs: [setup_workflow_env]
+    uses:  acdh-oeaw/gl-autodevops-minimal-port/.github/workflows/build-dockerfile-and-push-to-registry.yaml@main
+    secrets: inherit
+    with:
+      environment: ${{ needs.setup_workflow_env.outputs.environment }}
+      registry_root: ${{ needs.setup_workflow_env.outputs.registry_root }}
+      image_name: ${{ needs.setup_workflow_env.outputs.image_name }}
+      default_port: 0
+      fetch-depth: ${{ fromJson(needs.setup_workflow_env.outputs.fetch-depth) }}
+      submodules: ${{ needs.setup_workflow_env.outputs.submodules }}

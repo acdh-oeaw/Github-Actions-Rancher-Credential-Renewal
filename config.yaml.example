@@ -1,0 +1,24 @@
+rancher:
+  url: "https://rancher.example.com"
+  token: "token-xxxxxx:yyyyyyyy"  # v3 API token
+  ttl_seconds: 172800   # 2 days
+
+github:
+  token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+targets:
+  - name: "project-a-dev"
+    rancher_cluster_id: "c-m-abc12345"
+    github_scope:
+      type: "repo"
+      owner: "my-org"
+      repo: "project-a"
+    secret_name: "KUBE_CONFIG"
+
+  - name: "shared-prod-org-secret"
+    rancher_cluster_id: "c-m-def67890"
+    github_scope:
+      type: "org"
+      org: "my-org"
+      visibility: "all"     # or "private" or "selected"
+    secret_name: "KUBE_CONFIG"
