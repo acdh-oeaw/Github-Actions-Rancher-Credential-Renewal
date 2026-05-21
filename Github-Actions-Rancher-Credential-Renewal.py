@@ -47,7 +47,7 @@ class TargetConfig(BaseModel):
 
 
 class GitHubSettings(BaseModel):
-    token: str = Field(..., description="GitHub PAT with actions:write/admin:org as needed")
+    token: str = Field(..., description="GitHub PAT with fine grained access control and secrets:write is needed")
 
 
 class AppConfig(BaseModel):
