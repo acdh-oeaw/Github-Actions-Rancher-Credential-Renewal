@@ -62,11 +62,7 @@ class AppConfig(BaseModel):
 
 def load_config(path: Optional[str] = None) -> AppConfig:
     """
-    Load configuration from YAML file and/or environment variables.
-
-    - YAML for full config (Rancher, GitHub, targets).
-    - ENV can override:
-        RANCHER_URL, RANCHER_TOKEN, GITHUB_TOKEN
+    Load configuration from YAML file (Rancher, GitHub, targets).
     """
     data: dict = {}
 
@@ -76,22 +72,6 @@ def load_config(path: Optional[str] = None) -> AppConfig:
         with open(path, "r", encoding="utf-8") as f:
             yaml_data = yaml.safe_load(f) or {}
         data.update(yaml_data)
-
-    # Env overrides for main credentials
-    rancher_url = os.getenv("RANCHER_URL")
-    rancher_token = os.getenv("RANCHER_TOKEN")
-    github_token = os.getenv("GITHUB_TOKEN")
-
-    if rancher_url or rancher_token:
-        data.setdefault("rancher", {})
-        if rancher_url:
-            data["rancher"]["url"] = rancher_url
-        if rancher_token:
-            data["rancher"]["token"] = rancher_token
-
-    if github_token:
-        data.setdefault("github", {})
-        data["github"]["token"] = github_token
 
     try:
         return AppConfig.model_validate(data)
@@ -296,8 +276,7 @@ async def process_target(
     print(f"Fetched kubeconfig for cluster {target.rancher_cluster_id}")
 
     # 1a) Adjust kubeconfig if server host is 10.x.x.x
-    external_host = urlparse(cfg.rancher.url).hostname or cfg.rancher.url
-    kubeconfig_adjusted = adjust_kubeconfig(kubeconfig, external_host)
+    kubeconfig_adjusted = adjust_kubeconfig(kubeconfig, get_external_host_from_rancher_url(cfg.rancher.url))
     print("Adjusted kubeconfig (server + TLS) where needed")
 
     # 1b) Base64-encode the kubeconfig (so the secret value itself is base64)
