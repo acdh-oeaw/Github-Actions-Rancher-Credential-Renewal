@@ -27,11 +27,13 @@ class GitHubRepoScope(BaseModel):
     type: Literal["repo"]
     owner: str
     repo: str
+    token: str = Field(..., description="GitHub PAT with fine grained access control and secrets:write is needed")
 
 
 class GitHubOrgScope(BaseModel):
     type: Literal["org"]
     org: str
+    token: str = Field(..., description="GitHub PAT with fine grained access control and secrets:write is needed")
     visibility: Optional[Literal["all", "private", "selected"]] = "all"
     selected_repository_ids: Optional[List[int]] = None
 
@@ -46,13 +48,8 @@ class TargetConfig(BaseModel):
     secret_name: str = Field(..., description="GitHub secret name to update")
 
 
-class GitHubSettings(BaseModel):
-    token: str = Field(..., description="GitHub PAT with fine grained access control and secrets:write is needed")
-
-
 class AppConfig(BaseModel):
     rancher: RancherSettings
-    github: GitHubSettings
     targets: List[TargetConfig]
 
 
@@ -197,14 +194,13 @@ GITHUB_API_BASE = "https://api.github.com"
 
 async def get_github_public_key(
     client: httpx2.AsyncClient,
-    gh: GitHubSettings,
     scope: GitHubScope,
 ) -> tuple[str, str]:
     """
     Fetch the GitHub public key (key, key_id) for a repo or org.
     """
     headers = {
-        "Authorization": f"Bearer {gh.token}",
+        "Authorization": f"Bearer {scope.token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": GITHUB_API_VERSION,
     }
@@ -221,7 +217,6 @@ async def get_github_public_key(
 
 async def put_github_secret(
     client: httpx2.AsyncClient,
-    gh: GitHubSettings,
     scope: GitHubScope,
     secret_name: str,
     encrypted_value: str,
@@ -232,7 +227,7 @@ async def put_github_secret(
     For org scope, this can also set visibility/selected repositories.
     """
     headers = {
-        "Authorization": f"Bearer {gh.token}",
+        "Authorization": f"Bearer {scope.token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": GITHUB_API_VERSION,
     }
@@ -296,7 +291,6 @@ async def process_target(
     # 4) PUT secret
     await put_github_secret(
         client,
-        cfg.github,
         target.github_scope,
         target.secret_name,
         encrypted_value,

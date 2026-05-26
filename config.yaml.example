@@ -4,7 +4,6 @@ rancher:
   ttl_seconds: 172800   # 2 days
 
 github:
-  token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 targets:
   - name: "project-a-dev"
@@ -13,6 +12,7 @@ targets:
       type: "repo"
       owner: "my-org"
       repo: "project-a"
+      token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     secret_name: "KUBE_CONFIG"
 
   - name: "shared-prod-org-secret"
@@ -21,4 +21,5 @@ targets:
       type: "org"
       org: "my-org"
       visibility: "all"     # or "private" or "selected"
+      token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     secret_name: "KUBE_CONFIG"
