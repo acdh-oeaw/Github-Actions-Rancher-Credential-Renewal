@@ -99,6 +99,7 @@ async def get_kubeconfig_for_cluster(
     client: httpx2.AsyncClient,
     rancher: RancherSettings,
     cluster_id: str,
+    description: str,
 ) -> str:
     """
     Use Rancher 2.14's ext.cattle.io/v1 Kubeconfig CRD endpoint to get a kubeconfig
@@ -112,6 +113,7 @@ async def get_kubeconfig_for_cluster(
             "clusters": [cluster_id],
             "currentContext": cluster_id,
             "ttl": rancher.ttl_seconds,
+            "description": description,
         },
     }
 
@@ -263,12 +265,23 @@ async def process_target(
     target: TargetConfig,
 ) -> None:
     print(f"=== Processing target: {target.name} ===")
+    
+    # Build a description from config
+    scope = target.github_scope
+    if isinstance(scope, GitHubRepoScope):
+        description = (
+            f"GitHub Actions kubeconfig for repo {scope.owner}/{scope.repo}"
+        )
+    else:
+        description = (
+            f"GitHub Actions kubeconfig for org {scope.org}"
+        )
 
     # 1) Get kubeconfig for exactly one Rancher cluster
     kubeconfig = await get_kubeconfig_for_cluster(
-        client, cfg.rancher, target.rancher_cluster_id
+        client, cfg.rancher, target.rancher_cluster_id, description
     )
-    print(f"Fetched kubeconfig for cluster {target.rancher_cluster_id}")
+    print(f"Fetched kubeconfig for cluster {target.rancher_cluster_id} with description '{description}'")
 
     # 1a) Adjust kubeconfig if server host is 10.x.x.x
     kubeconfig_adjusted = adjust_kubeconfig(kubeconfig, get_external_host_from_rancher_url(cfg.rancher.url))
@@ -280,7 +293,7 @@ async def process_target(
 
     # 2) Get GitHub public key for this scope (repo or org)
     public_key_b64, key_id = await get_github_public_key(
-        client, cfg.github, target.github_scope
+        client, target.github_scope
     )
     print("Got GitHub public key")
 
