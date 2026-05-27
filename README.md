@@ -79,6 +79,43 @@ In this example:
 
 - `/etc/rancher-renewal/config.yaml` on the host is mounted read‑only into `/app/config.yaml` inside the container.
 
+### Run using podman and systemd
+
+E. g. `/etc/containers/systemd/rancher-github-credential-renewal.container`
+
+```systemd
+[Unit]
+Description=Rancher GitHub credential renewal
+
+[Container]
+Image=ghcr.io/acdh-oeaw/github-actions-rancher-credential-renewal/main:main
+# Environment="HTTPS_PROXY=http://proxy.example.org:3128"
+# Mount host config file into the container as /app/config.yaml (read only)
+Volume=/etc/rancher-github-credential-renewal/config.yaml:/app/config.yaml:ro
+# Enable Podman auto-update (pull from registry when image changes)
+AutoUpdate=registry
+
+[Service]
+Type=oneshot
+```
+
+## Scheduling using systemd
+
+E. g. `/etc/systemd/system/rancher-github-credential-renewal.timer`
+```systemd
+[Unit]
+Description=Run Rancher GitHub credential renewal daily
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=rancher-github-credential-renewal.service
+
+[Install]
+WantedBy=timers.target
+``` 
+
 ## Scheduling with Cron
 
 On a host where Python is installed or where you use the provided container, you can run the script periodically.
@@ -115,6 +152,22 @@ Where:
 
 - `config.yaml` contains sensitive token. Limit exposure as much as possible
 - This is meant to run on a separate system within the organization trustesd intranet
+
+## Reviewing all generated kubeconfigs
+
+Start a kube shell on the cluster Rancher is running on and execute
+
+```shell
+kubectl get kubeconfig -o wide
+# NAME               TTL   TOKENS   STATUS     AGE     USER           CLUSTERS       DESCRIPTION
+# kubeconfig-6f747   2d    1/1      Complete   12m     m-q6724        c-m-6hwgqq2g   GitHub Actions kubeconfig for repo oener/repo
+```
+
+You can delete the kubeconfig there using
+
+```shell
+kubectl delete kubeconfig kubeconfig-6f747
+```
 
 ## License
 
